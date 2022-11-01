@@ -1,13 +1,13 @@
-import path from 'path';
-import fs from 'fs-extra';
-import config from 'config';
-import yargs from 'yargs';
-import axios from 'axios';
-import { URL } from 'url';
+import path from 'path'
+import fs from 'fs-extra'
+import config from 'config'
+import yargs from 'yargs'
+import axios from 'axios'
+import { URL } from 'url'
 
-import type { Page, ViewPort } from './types';
-import { logger } from './logger';
-import { captureScreenshot } from './capture_screenshot';
+import type { Page, ViewPort } from './types'
+import { logger } from './logger'
+import { captureScreenshot } from './capture_screenshot'
 
 async function main() {
   const argv = await yargs
@@ -15,41 +15,40 @@ async function main() {
       type: 'string',
       demandOption: true,
     })
-    .help().argv;
+    .help().argv
 
-  const baseUrl = argv.url;
+  const baseUrl = argv.url
 
   // Initialize
   await axios.post(new URL('/api/initialize', baseUrl).href, '', {
     headers: {
       'Content-Type': 'text/plain',
     },
-  });
-  logger.info('Initialized: %s', baseUrl);
+  })
+  logger.info('Initialized: %s', baseUrl)
 
-  const viewportList = config.get<ViewPort[]>('viewports');
-  const pageList = config.get<Page[]>('pages');
+  const viewportList = config.get<ViewPort[]>('viewports')
+  const pageList = config.get<Page[]>('pages')
 
-  const exportPath = path.resolve(process.cwd(), './tmp/actual/');
-  await fs.remove(exportPath);
-  await fs.ensureDir(exportPath);
+  const exportPath = path.resolve(process.cwd(), './tmp/actual/')
+  await fs.remove(exportPath)
+  await fs.ensureDir(exportPath)
 
   for (const viewport of viewportList) {
-    for (const page of pageList) {
-      const url = new URL(page.path, baseUrl).href;
+    pageList.forEach(async (page) => {
+      const url = new URL(page.path, baseUrl).href
       const buffer = await captureScreenshot({
         url,
         width: viewport.width,
         height: viewport.height,
-      });
-      await fs.writeFile(path.resolve(exportPath, `./${page.name} - ${viewport.name}.png`), buffer);
-
-      logger.info('Captured: %s, %s', page.name, viewport.name);
-    }
+      })
+      await fs.writeFile(path.resolve(exportPath, `./${page.name} - ${viewport.name}.png`), buffer)
+      logger.info('Captured: %s, %s', page.name, viewport.name)
+    })
   }
 }
 
 main().catch((e) => {
-  logger.error(e);
-  process.exit(1);
-});
+  logger.error(e)
+  process.exit(1)
+})
